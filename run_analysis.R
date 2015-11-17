@@ -21,15 +21,53 @@ features <- read.table(file.path(headDataPath,featuresFile),
                            colClasses=c("NULL",'character'), 
                            col.names = c('NULL','features'))
 
-# Import training X data
-trainXData <- read.table(file.path(trainDataPath,trainXDataFile),
-                         col.names = features$features)
-trainXData <- tbl_df(trainXData)
+# Function to import data appending X, Y and subject data
+importData <- function(dataPath, xDataFile, yDataFile, subjFile, featureNames, designation)
+{
+    # Import X data
+    xData <- read.table(file.path(dataPath, xDataFile),
+                             col.names = featureNames)
+    xData <- tbl_df(xData)
+    
+    # Import Y data
+    yData <- read.table(file.path(dataPath, yDataFile), 
+                        col.names = c('activity'), 
+                        colClasses = c('factor'))
+    yData <- tbl_df(yData)
+    
+    # Import subject data
+    subjData <- read.table(file.path(dataPath, subjFile),
+                                col.names = c('subject'))
+    subjData <- tbl_df(subjData)
+    
+    # Merge X, Y and Subject training data and add column to designation if train or test
+    bind_cols(xData, yData, subjData) %>%
+        mutate(designation = designation)
+}
 
-# Import training X data
-trainYData <- read.table(file.path(trainDataPath,trainYDataFile),
-                         col.names = c('activityLabel'))
-trainYData <- tbl_df(trainYData)
+# *1* Merge the training and the test sets to create one data set
+trainData <- importData(trainDataPath, trainXDataFile, trainYDataFile,
+                        trainSubjFile, features$features, 'train')
+testData <- importData(testDataPath, testXDataFile, testYDataFile,
+                        testSubjFile, features$features, 'test')
+expData <- bind_rows(trainData, testData)
 
+# *2* Extract only the measurements on the mean and standard deviation
+meanStdExpData <- select(expData, contains('mean'), contains('std'), 
+                         -contains('angle'), activity, subject)
 
+# *3* Use descriptive activity names to name the activities in the data set
+# Import activity names
+activityNames <- read.table(file.path(headDataPath, activityLabelFile), 
+                            col.names = c('NULL','activity'), 
+                            colClasses = c('NULL','factor'))
+# Substitute number with descriptive activity names
+levels(meanStdExpData$activity) <- levels(activityNames$activity)
 
+# *4* Appropriately labels the data set with descriptive variable names
+# Variable names are extracted from features.txt earlier, thus descriptive already
+
+# *5* From the data set in step 4, create a second, independent tidy data set with 
+# the average of each variable for each activity and each subject.
+averageData <- group_by(meanStdExpData, activity, subject) %>%
+    summarise_each(funs(mean))
