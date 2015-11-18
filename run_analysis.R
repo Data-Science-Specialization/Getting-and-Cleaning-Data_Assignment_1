@@ -54,7 +54,7 @@ expData <- bind_rows(trainData, testData)
 
 # *2* Extract only the measurements on the mean and standard deviation
 meanStdExpData <- select(expData, contains('mean'), contains('std'), 
-                         -contains('angle'), activity, subject)
+                         -contains('angle'), -contains('meanFreq'), activity, subject)
 
 # *3* Use descriptive activity names to name the activities in the data set
 # Import activity names
