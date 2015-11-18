@@ -61,13 +61,19 @@ meanStdExpData <- select(expData, contains('mean'), contains('std'),
 activityNames <- read.table(file.path(headDataPath, activityLabelFile), 
                             col.names = c('NULL','activity'), 
                             colClasses = c('NULL','factor'))
-# Substitute number with descriptive activity names
+# Substitute numbers with descriptive activity names
 levels(meanStdExpData$activity) <- levels(activityNames$activity)
 
-# *4* Appropriately labels the data set with descriptive variable names
-# Variable names are extracted from features.txt earlier, thus descriptive already
+# *4* Appropriately label the data set with descriptive variable names;
+# original feature names seem descriptive enough, but need tidying up
+names(meanStdExpData) <- gsub('\\.+','_',names(meanStdExpData)) #Remove dots
+names(meanStdExpData) <- gsub('_$',"",names(meanStdExpData))    #Remove trailing underscores
+names(meanStdExpData) <- gsub('BodyBody','Body',names(meanStdExpData))  #Remove unnecessary 'Body' repetition
 
 # *5* From the data set in step 4, create a second, independent tidy data set with 
 # the average of each variable for each activity and each subject.
 averageData <- group_by(meanStdExpData, activity, subject) %>%
     summarise_each(funs(mean))
+
+# Export tidy data frame to Tidy Activity.txt
+write.table(averageData, file="Tidy Activity.txt", row.names=FALSE)
